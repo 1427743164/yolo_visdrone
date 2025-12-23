@@ -711,3 +711,28 @@ class Index(nn.Module):
             (torch.Tensor): Selected tensor.
         """
         return x[self.index]
+
+# 打开 ultralytics/nn/modules/conv.py，在末尾添加：
+
+import torch
+import torch.nn as nn
+
+class SPDConv(nn.Module):
+    # Space-to-Depth Convolution module [cite: 165]
+    def __init__(self, c1, c2, dimension=1):
+        super().__init__()
+        self.d = dimension
+        # 通道数变为4倍(因为2x2切片) [cite: 170]
+        self.conv = nn.Conv2d(c1 * 4, c2, 3, 1, 1)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.SiLU()
+
+    def forward(self, x):
+        # 按照奇偶行/列切分并拼接 [cite: 177]
+        x = torch.cat([
+            x[..., 0::2, 0::2],
+            x[..., 1::2, 0::2],
+            x[..., 0::2, 1::2],
+            x[..., 1::2, 1::2]
+        ], 1)
+        return self.act(self.bn(self.conv(x)))

@@ -126,7 +126,11 @@ class BboxLoss(nn.Module):
         """Compute IoU and DFL losses for bounding boxes."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
         iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
-        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        # 添加 NWD 计算
+        nwd = wasserstein_loss(pred_bboxes[fg_mask], target_bboxes[fg_mask])
+
+        # 修改 loss_bbox 计算公式
+        loss_bbox = (0.5 * (1.0 - iou) + 0.5 * (1.0 - nwd)).sum() / target_scores_sum
 
         # DFL loss
         if self.dfl_loss:

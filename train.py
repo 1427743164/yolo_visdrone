@@ -16,7 +16,7 @@ def main():
         data="VisDrone.yaml",
         epochs=150,  # VisDrone 建议增加 epoch [cite: 301]
         imgsz=640,  # 显存允许建议设为 1280 [cite: 328]
-        batch=4,  # P2 Head 显存占用大 [cite: 305]
+        batch=16,  # P2 Head 显存占用大 [cite: 305]
         device=0,
         optimizer="AdamW",
         name="yolov11_visdrone_innovation",

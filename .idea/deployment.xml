@@ -1,7 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="root@connect.nmb1.seetacloud.com:12840 password (2)" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
+      <paths name="root@connect.nmb1.seetacloud.com:12840 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/root/autodl-tmp/yolo_visdrone" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@connect.nmb1.seetacloud.com:12840 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/root/autodl-tmp/yolo_visdrone" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="root@connect.nmb1.seetacloud.com:19625 password">
         <serverdata>
           <mappings>
@@ -9,6 +23,21 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="root@connect.nmb1.seetacloud.com:19625 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/root/autodl-tmp/yolo_visdrone" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@connect.nmb1.seetacloud.com:19625 password (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/root/autodl-tmp/yolo_visdrone" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

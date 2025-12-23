@@ -105,6 +105,33 @@ class DFLoss(nn.Module):
         ).mean(-1, keepdim=True)
 
 
+# --- 🔴 必须插入在 class BboxLoss 之前！！！ ---
+def wasserstein_loss(pred_boxes, target_boxes, constant=12.8, eps=1e-7):
+    """
+    计算 NWD (Normalized Wasserstein Distance)
+    pred_boxes, target_boxes: [N, 4] (xyxy format)
+    """
+    # 1. 转换 xyxy -> xywh (中心点, 宽高)
+    p_w = pred_boxes[:, 2] - pred_boxes[:, 0]
+    p_h = pred_boxes[:, 3] - pred_boxes[:, 1]
+    p_cx = pred_boxes[:, 0] + p_w / 2
+    p_cy = pred_boxes[:, 1] + p_h / 2
+
+    t_w = target_boxes[:, 2] - target_boxes[:, 0]
+    t_h = target_boxes[:, 3] - target_boxes[:, 1]
+    t_cx = target_boxes[:, 0] + t_w / 2
+    t_cy = target_boxes[:, 1] + t_h / 2
+
+    # 2. 计算 Wasserstein 距离
+    center_dist_sq = (p_cx - t_cx).pow(2) + (p_cy - t_cy).pow(2)
+    wh_dist_sq = ((p_w - t_w) / 2).pow(2) + ((p_h - t_h) / 2).pow(2)
+    w2_sq = center_dist_sq + wh_dist_sq
+
+    # 3. 归一化 (NWD)
+    nwd = torch.exp(-torch.sqrt(w2_sq + eps) / constant)
+    return nwd
+# ----------------------------------------------------
+
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
@@ -114,23 +141,32 @@ class BboxLoss(nn.Module):
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
 
     def forward(
-        self,
-        pred_dist: torch.Tensor,
-        pred_bboxes: torch.Tensor,
-        anchor_points: torch.Tensor,
-        target_bboxes: torch.Tensor,
-        target_scores: torch.Tensor,
-        target_scores_sum: torch.Tensor,
-        fg_mask: torch.Tensor,
+            self,
+            pred_dist: torch.Tensor,
+            pred_bboxes: torch.Tensor,
+            anchor_points: torch.Tensor,
+            target_bboxes: torch.Tensor,
+            target_scores: torch.Tensor,
+            target_scores_sum: torch.Tensor,
+            fg_mask: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute IoU and DFL losses for bounding boxes."""
+        # 计算样本权重
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
+
+        # 1. 计算 CIoU
         iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
-        # 添加 NWD 计算
+
+        # 2. 计算 NWD
         nwd = wasserstein_loss(pred_bboxes[fg_mask], target_bboxes[fg_mask])
 
-        # 修改 loss_bbox 计算公式
-        loss_bbox = (0.5 * (1.0 - iou) + 0.5 * (1.0 - nwd)).sum() / target_scores_sum
+        # 3. 计算混合 Loss (IoU + NWD)
+        # 🔴 关键修正 1：必须乘上 weight！否则分配器的质量评估失效
+        loss_iou_val = 1.0 - iou
+        loss_nwd_val = 1.0 - nwd
+
+        # 这里的 0.5 是权重比例，你可以调整（例如 0.3 IoU + 0.7 NWD 针对小目标更好）
+        loss_bbox = ((0.5 * loss_iou_val + 0.5 * loss_nwd_val) * weight).sum() / target_scores_sum
 
         # DFL loss
         if self.dfl_loss:
@@ -140,7 +176,8 @@ class BboxLoss(nn.Module):
         else:
             loss_dfl = torch.tensor(0.0).to(pred_dist.device)
 
-        return loss_iou, loss_dfl
+        # 🔴 关键修正 2：返回 loss_bbox 而不是 loss_iou
+        return loss_bbox, loss_dfl
 
 
 class RotatedBboxLoss(BboxLoss):

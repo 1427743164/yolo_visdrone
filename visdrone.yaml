@@ -1,0 +1,22 @@
+# 这里的 path 建议写绝对路径，防止报错
+# 例如: /home/user/projects/datasets/VisDrone_YOLO
+path: ./datasets/VisDrone_YOLO
+
+# Ultralytics 会自动寻找同级的 labels 文件夹，所以只需指向 images
+train: images/train
+val: images/val
+test: images/test
+
+# Classes (10类)
+nc: 10
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor

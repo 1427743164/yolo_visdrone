@@ -52,6 +52,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "SPDConv",
 )
 
 
@@ -2031,3 +2032,22 @@ class SAVPE(nn.Module):
         aggregated = score.transpose(-2, -3) @ x.reshape(B, self.c, C // self.c, -1).transpose(-1, -2)
 
         return F.normalize(aggregated.transpose(-2, -3).reshape(B, Q, -1), dim=-1, p=2)
+
+
+# --- 🔴 在 block.py 中新增 SPDConv 类定义 ---
+class SPDConv(nn.Module):
+    """
+    Space-to-Depth Convolution (SPD-Conv) layer.
+    用于替代 Strided Convolution 这里的下采样，保留小目标细粒度信息。
+    """
+    def __init__(self, c1, c2, dimension=1):
+        super().__init__()
+        self.d = 2 # downsample factor
+        # 这里的输入通道是 c1 * 4，因为 space-to-depth 会把长宽减半，通道乘4
+        self.conv = Conv(c1 * 4, c2, 1, 1)
+
+    def forward(self, x):
+        # x: [B, C, H, W]
+        # 切片操作：分别取 (0,0), (1,0), (0,1), (1,1) 位置的像素
+        z = torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1)
+        return self.conv(z)

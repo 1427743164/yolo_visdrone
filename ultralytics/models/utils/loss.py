@@ -12,6 +12,39 @@ from ultralytics.utils.metrics import bbox_iou
 from .ops import HungarianMatcher
 
 
+# --- 🔴 新增 NWD Loss 计算函数 (必须添加) ---
+def wasserstein_loss(pred_boxes, target_boxes, constant=12.8, eps=1e-7):
+    """
+    计算 NWD (Normalized Wasserstein Distance)
+    pred_boxes, target_boxes: [N, 4] (xyxy format)
+    """
+    # 1. 转换 xyxy -> xywh (中心点, 宽高)
+    # pred_boxes 和 target_boxes 已经是 xyxy 格式
+    p_w = pred_boxes[:, 2] - pred_boxes[:, 0]
+    p_h = pred_boxes[:, 3] - pred_boxes[:, 1]
+    p_cx = pred_boxes[:, 0] + p_w / 2
+    p_cy = pred_boxes[:, 1] + p_h / 2
+
+    t_w = target_boxes[:, 2] - target_boxes[:, 0]
+    t_h = target_boxes[:, 3] - target_boxes[:, 1]
+    t_cx = target_boxes[:, 0] + t_w / 2
+    t_cy = target_boxes[:, 1] + t_h / 2
+
+    # 2. 计算 Wasserstein 距离 (2D Gaussian)
+    # W2^2 = ||m1-m2||^2 + Tr(Sigma1 + Sigma2 - 2(Sigma1^1/2 * Sigma2 * Sigma1^1/2)^1/2)
+    # 对于轴对齐的框，简化为:
+    center_dist_sq = (p_cx - t_cx).pow(2) + (p_cy - t_cy).pow(2)
+    wh_dist_sq = ((p_w - t_w) / 2).pow(2) + ((p_h - t_h) / 2).pow(2)
+
+    w2_sq = center_dist_sq + wh_dist_sq
+
+    # 3. 归一化 (NWD)
+    # constant 是超参数 C，通常取 12.8 (与 VisDrone 数据集尺度相关)
+    nwd = torch.exp(-torch.sqrt(w2_sq + eps) / constant)
+
+    return nwd
+
+
 class DETRLoss(nn.Module):
     """
     DETR (DEtection TRansformer) Loss class for calculating various loss components.

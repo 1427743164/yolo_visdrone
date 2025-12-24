@@ -1,3 +1,7 @@
+import sys
+import os
+# 强制将当前项目根目录加入 Python 搜索路径的最前面
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ultralytics import YOLO
 
 
@@ -13,10 +17,10 @@ def main():
 
     # 开始训练
     model.train(
-        data="VisDrone.yaml",
-        epochs=150,  # VisDrone 建议增加 epoch [cite: 301]
-        imgsz=640,  # 显存允许建议设为 1280 [cite: 328]
-        batch=16,  # P2 Head 显存占用大 [cite: 305]
+        data="visdrone.yaml",
+        epochs=300,  # VisDrone 建议增加 epoch [cite: 301]
+        imgsz=1280,  # 显存允许建议设为 1280 [cite: 328]
+        batch=4,  # P2 Head 显存占用大 [cite: 305]
         device=0,
         optimizer="AdamW",
         name="yolov11_visdrone_innovation",
@@ -28,4 +32,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    finally:
+        print("训练结束，正在准备关机...")
+        os.system("shutdown")
